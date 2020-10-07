@@ -5,16 +5,22 @@
 ;   Basen on TAP file template for ZX Spectrum by Günter Woigk
 ;
 ;   Copyright (c) McKlaud 2020
+;
+;   Change log:
+;
+;   v.0.2 - 7/10/2020 - spelling corrections and housekeeping
+;   v.0.1 - 1/10/2020 - first release
+;
 ; ================================================================
-
+;
 ; fill byte is 0x00
 ; #code has an additional argument: the sync byte for the block.
 ; The assembler calculates and appends checksum byte to each segment.
 ; Note: If a segment is appended without an explicite address, then the sync
 ; byte and the checksum byte of the preceding segment are not counted when
 ; calculating the start address of this segment.
-
-; Compile with ZASM v 4.x
+;
+; Compile with ZASM v 4.2.x or above
 ; zasm --z80 --dotnames -uwy source.asm target.tap
 ;
 ; --z80       - traget Zilog Z80 (default)
@@ -25,12 +31,14 @@
 ; -y          - include cpu clock cycles in list file
 ;
 ; zasm -uwy source.asm target.tap
-
+;
 ; Load with:
 ;   0 0 bload binary
 ;
 ; Run the code with:
 ;   16000 call
+;
+; ================================================================
 
 startadr        equ     $3E80           ; Start address for BIN files; e.g. 16000
 
@@ -52,15 +60,16 @@ v_stkbot        equ     $2020
 ;------------------
 ; ROM routines
 ;------------------
-CLS             equ     $0A24         ; Clear Screen
+CLS             equ     $0A24           ; Clear Screen
 
 #target TAP
 
-#code TAP_HEADER, 0, headerlength-1, headerflag
+; Since ZASM 4.2.0 flag to be NONE for ACE TAPs
+#code TAP_HEADER, 0, headerlength, NONE
 ; Juputer ACE TAP header structure:
 
 ;               defw    headerlength    ; 2 bytes: always 25 bytes (0x1A) for JACE - added by ZASM
-;               dewb    file_type       ; 1 byte: File Type = headerflag - added by ZASM§
+                defb    headerflag      ; 1 byte: File Type = headerflag - added by ZASM§
                 defb    "binary    "    ; 10 bytes: the file name
 ;                       |----------|     <<< Keep it exactly 10 chars long!
                 defw    CODE_DATA_size  ; 2 bytes: File Length
