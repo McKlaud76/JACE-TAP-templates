@@ -2,19 +2,21 @@
 ;   Source for target 'tap'
 ;   ZASM Tape file for Jupiter ACE - BINARY files
 ;
-;   Basen on TAP file template for ZX Spectrum by Günter Woigk
+;   Basen on TAP file template for ZX Spectrum by kio@little-bat.de
 ;
 ;   Copyright (c) McKlaud 2020
 ;
 ;   Change log:
 ;
+;   v.0.3 - 7/10/2020 - naming, comments (kio)
 ;   v.0.2 - 7/10/2020 - spelling corrections and housekeeping
 ;   v.0.1 - 1/10/2020 - first release
 ;
 ; ================================================================
 ;
 ; fill byte is 0x00
-; #code has an additional argument: the sync byte for the block.
+; #code has an additional argument: the block type (flag byte) for the block.
+; Since ZASM 4.2.0 the flag byte in #CODE must be set to NONE for ACE TAPs.
 ; The assembler calculates and appends checksum byte to each segment.
 ; Note: If a segment is appended without an explicite address, then the sync
 ; byte and the checksum byte of the preceding segment are not counted when
@@ -45,8 +47,8 @@ startadr        equ     $3E80           ; Start address for BIN files; e.g. 1600
 ;------------------
 ; BIN file definition
 ;------------------
-headerlength    equ     25              ; neither file type nor CRC byte included
-headerflag      equ     $20             ; 0x20 = BINARY file type
+headerlength    equ     25              ; neither block type (flag byte) nor CRC byte included
+filetype        equ     $20             ; 0x20 = BINARY file type
 
 ;------------------
 ; Default values of system variables
@@ -64,12 +66,11 @@ CLS             equ     $0A24           ; Clear Screen
 
 #target TAP
 
-; Since ZASM 4.2.0 flag to be NONE for ACE TAPs
-#code TAP_HEADER, 0, headerlength, NONE
-; Juputer ACE TAP header structure:
+#code TAP_HEADER, 0, headerlength, flag=NONE
+; Jupiter ACE TAP header structure:
 
 ;               defw    headerlength    ; 2 bytes: always 25 bytes (0x1A) for JACE - added by ZASM
-                defb    headerflag      ; 1 byte: File Type = headerflag - added by ZASM§
+                defb    filetype        ; 1 byte:  File Type
                 defb    "binary    "    ; 10 bytes: the file name
 ;                       |----------|     <<< Keep it exactly 10 chars long!
                 defw    CODE_DATA_size  ; 2 bytes: File Length
@@ -80,10 +81,10 @@ CLS             equ     $0A24           ; Clear Screen
                 defw    v_voclink       ; 2 bytes: VOCLINK (NOT USED)
                 defw    v_stkbot        ; 2 bytes: STKBOT (NOT USED)
 ;               defb    checksum        ; 1 byte: Header Block CheckSum - added by ZASM
-;               defw    CODE_DATA_size  ; 2 bytes: TAP 2nd chunck size - added by ZASM
 
-; Since ZASM 4.2.0 flag to be NONE for ACE TAPs
-#code CODE_DATA, startadr, *, NONE
+
+#code CODE_DATA, startadr, *, flag=NONE
+;               defw    CODE_DATA_size  ; 2 bytes: TAP 2nd chunck size - added by ZASM
 
 ; BIN block starts here
 
