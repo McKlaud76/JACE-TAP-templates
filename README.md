@@ -3,7 +3,7 @@ for ZASM v.4.2.x or above
 
 AUTORUN_template.asm - for TAP file with autostart
 
-BIN_template.asm - for TAP file with binary code with deined starting address
+BIN_template.asm - for TAP file with binary code with pre-defined starting address
 
 DICT_template.asm - for TAP file with new vocabulary definitions
 
