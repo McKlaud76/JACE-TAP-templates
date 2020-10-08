@@ -12,14 +12,14 @@
 ;   v.0.1 - 8/10/2020 - first draft (simple and dirty)
 ;
 ; ================================================================
-
+;
 ; fill byte is 0x00
 ; #code has an additional argument: the sync byte for the block.
 ; The assembler calculates and appends checksum byte to each segment.
 ; Note: If a segment is appended without an explicite address, then the sync
 ; byte and the checksum byte of the preceding segment are not counted when
 ; calculating the start address of this segment.
-
+;
 ; Compile with ZASM v 4.x
 ; zasm --z80 --dotnames -uwy source.asm target.tap
 ;
@@ -31,11 +31,12 @@
 ; -y          - include cpu clock cycles in list file
 ;
 ; zasm -uwy source.asm target.tap
-
+;
 ; Load with:
 ;   0 0 bload autorun
+;
+; ================================================================
 
-;------------------
 startadr        equ     $3C51           ; Start address for MAIN program
 
 CUR_LINK        equ     $3C49           ; Current WORD link (0x3C49 default value)
