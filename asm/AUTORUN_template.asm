@@ -2,24 +2,25 @@
 ;   Source for autorun target 'tap'
 ;   ZASM Tape file for Jupiter ACE - AUTORUN files
 ;
-;   Basen on TAP file template for ZX Spectrum by Günter Woigk
+;   Basen on TAP file template for ZX Spectrum by kio@little-bat.de
 ;   and AUTORUN template for TASM at Jupiter Ace Archive (www.jupiter-ace.co.uk)
 ;
 ;   Copyright (c) McKlaud 2020
 ;
 ;   Change log:
 ;
-;   v.0.2 - 9/10/2020 - housekeeping & AR_DATA block length update
-;   v.0.1 - 8/10/2020 - first draft (simple and dirty)
+;   v.0.3 - 2020-10-09  minor corrections/comments (kio)
+;   v.0.2 - 2020-10-09  housekeeping & AR_DATA block length update
+;   v.0.1 - 2020-10-08  first draft (simple and dirty)
 ;
 ; ================================================================
 ;
-; fill byte is 0x00
-; #code has an additional argument: the sync byte for the block.
-; The assembler calculates and appends checksum byte to each segment.
-; Note: If a segment is appended without an explicite address, then the sync
-; byte and the checksum byte of the preceding segment are not counted when
-; calculating the start address of this segment.
+; #CODE has an additional argument: the block type (flag byte) for the block.
+; Since ZASM 4.2.0 the flag byte in #CODE must be set to NONE for ACE TAPs.
+; The assembler adds the block size and the checksum for each block
+; as required by the Jupiter ACE .tap file format.
+; Block size, flag byte and checksum are not counted in address calculations.
+; Default fill byte in 'defs' is 0x00.
 ;
 ; Compile with ZASM v 4.x
 ; zasm --z80 --dotnames -uwy source.asm target.tap
@@ -49,8 +50,7 @@ CUR_LINK        equ     $3C49           ; Current WORD link (0x3C49 default valu
 ;------------------
 ; AUTORUN file definition
 ;------------------
-headerlength    equ     25              ; neither file type nor CRC byte included
-headerflag      equ     $20             ; 0x20 = BINARY file type
+headerlength    equ     25              ; neither file type nor checksum byte included
 DICT_type       equ     $00             ; 0x00 = DICTionary block
 BIN_type        equ     $20             ; 0x20 = BINary block
 
@@ -68,76 +68,81 @@ v_stkbot        equ     $2020
 ;------------------
 CLS             equ     $0A24         ; Clear Screen
 
+
 #target TAP
 
 ;=======================================================================
 ;                             AUTORUN File
 ;=======================================================================
 
-#code TAP_HEADER, 0, headerlength, NONE
-; Juputer ACE TAP header structure:
+; ----------------------------------------------------------------------
+#code AUTORUN_HEADER, 0, headerlength, flag=NONE
 
-;               defw    headerlength    ; 2 bytes: always 25 bytes (0x1A) for JACE - added by ZASM
-                defb    headerflag      ; 1 byte: File Type = headerflag
+; TAP Header Block:
 
+;               defw    headerlength+1  ; 2 bytes: block size - added by ZASM
+                defb    BIN_type        ; 1 byte:  File Type = Binary
                 defb    "autorun   "    ; 10 bytes: the file name
-;                       |----------|     <<< Keep it exactly 10 chars long!
-
-                defw    AR_DATA_size    ; 2 bytes: File Length
+                ;       |----------|     <<< Keep it exactly 10 chars long!
+                defw    AUTORUN_DATA_size ; 2 bytes: File Length
                 defw    $22E0           ; 2 bytes: Start Address at 24th screen line (8928)
                 defw    v_c_link        ; 2 bytes: current word link (NOT USED)
                 defw    v_current       ; 2 bytes: CURRENT (NOT USED)
                 defw    v_context       ; 2 bytes: CONTEXT (NOT USED)
                 defw    v_voclink       ; 2 bytes: VOCLINK (NOT USED)
                 defw    v_stkbot        ; 2 bytes: STKBOT (NOT USED)
-;               defb    checksum        ; 1 byte: Header Block CheckSum - added by ZASM
-;               defw    CODE_DATA_size  ; 2 bytes: TAP 2nd chunck size - added by ZASM
+;               defb    checksum        ; 1 byte:  checksum - added by ZASM
 
-#code AR_DATA, 0, 31, NONE
-; AR_DATA executes FORTH command
+
+; ----------------------------------------------------------------------
+#code AUTORUN_DATA, 0, 31, flag=NONE
+
+; TAP Data Block:
+
+; load and execute:
+;
 ;    LOAD mainfile RUN
 
-AR_DATA_start  defb     0               ; Input buffer start marker
-               defb     "LOAD "         ; LOAD
+AR_DATA_start   defb    0               ; Input buffer start marker
+                defb    "LOAD "         ; LOAD
+                defb    "mainfile  "    ; 10 bytes: the file name
+                ;       |----------|     <<< Keep it exactly 10 chars long!
+                defb    $20             ; Space
+                defb    "RUN"           ; Word to execute (autorun)
+                ;       |--------------| <<< Keep it shorter than 14 chars!
+                defs    31 - ($ - AR_DATA_start), $20 ; Fill remaining with space
 
-               defb     "mainfile  "    ; 10 bytes: the file name
-;                       |----------|     <<< Keep it exactly 10 chars long!
-
-               defb     $20             ; Space
-               defb     "RUN"           ; Word to autorun
-;                       |--------------| <<< Keep it shorter than 14 chars!
-
-               defs     31 - ($ - AR_DATA_start), $20 ; Fill remaining with space
-;              defb    checksum         ; 1 byte: Header Block CheckSum - added by ZASM
 
 ;=======================================================================
 ;                                Main file
 ;=======================================================================
-; Since ZASM 4.2.0 flag to be NONE for ACE TAPs
-#code MAIN_HEADER, 0, headerlength, NONE
-; Juputer ACE TAP header structure:
 
-;               defw    headerlength    ; 2 bytes: always 25 bytes (0x1A) for JACE - added by ZASM
+; ----------------------------------------------------------------------
+#code MAIN_HEADER, 0, headerlength, flag=NONE
+
+; TAP Header Block:
+
                 defb    DICT_type       ; 1 byte: Block Type
-
-                defb     "mainfile  "    ; 10 bytes: the file name
-;                        |----------|     <<< Keep it exactly 10 chars long!
-
-                defw    DATA_BLK_size   ; 2 bytes: File Length
-                defw    DATA_BLK        ; 2 bytes: Start Address
+                defb    "mainfile  "    ; 10 bytes: the file name
+                ;       |----------|     <<< Keep it exactly 10 chars long!
+                defw    MAIN_DATA_size  ; 2 bytes: File Length
+                defw    MAIN_DATA       ; 2 bytes: Start Address
                 defw    word_lnk        ; 2 bytes: AUTORUN word link field address
                 defw    v_current       ; 2 bytes: CURRENT
                 defw    v_context       ; 2 bytes: CONTEXT
                 defw    v_voclink       ; 2 bytes: VOCLINK
-                defw    DATA_BLK_end    ; 2 bytes: STKBOT
-;               defb    checksum        ; 1 byte: Header Block CheckSum - added by ZASM
-;               defw    DICT_DATA_size  ; 2 bytes: TAP 2nd chunck size - added by ZASM
+                defw    MAIN_DATA_end   ; 2 bytes: STKBOT
 
-#code DATA_BLK, startadr, *, NONE
 
-; DATA block starts here
-;------------------------------
-; -- RUN word header
+; ----------------------------------------------------------------------
+#code MAIN_DATA, startadr, *, flag=NONE
+
+; TAP Data Block:
+; Definition of autorun word and machine code.
+
+; ---------------
+; RUN word header
+
 word_name       defb    "RUN" + $80     ; Word Name (last letter inverse)
                 defw    word_end - $    ; Word Length Field
                 defw    CUR_LINK        ; Link Field
@@ -149,12 +154,10 @@ word_lnk        defb    $ - word_name - 4  ; Name Length Field
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
                 call    CLS             ; call 'CLS' in ROM
-
                 call    s_print         ; call 's_print' - print a string
                 defb    13              ; print CR to screen
                 defb    "A u t o RUN test ..."  ; message
                 defb    13,0            ; print CR twice to screen + end marker
-
                 jp      (iy)            ; return to forth
 
 ;------------------------------------------------
@@ -177,9 +180,10 @@ s_print         pop     hl              ; retrieve return address
                 jr      s_print         ; repeat until end marker 0 is found
                 ret                     ; return
 
-; -----------------------------
-; --- END ---
 word_end        equ     $
 
-;               defb    checksum        ; 1 byte: DICT_DATA Block CheckSum - added by ZASM
-#end                                    ; code blocks END
+
+;------------------------------------------------
+
+#end
+
