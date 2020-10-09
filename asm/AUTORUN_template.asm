@@ -97,10 +97,6 @@ CLS             equ     $0A24         ; Clear Screen
 ; AR_DATA executes FORTH command
 ;    LOAD mainfile RUN
 
-; mainfile to be defined uder main_fname
-
-; FORTH name to defined under run_word and FORTH definiion below
-
 AR_DATA_start  defb     0               ; Input buffer start marker
                defb     "LOAD "         ; LOAD
 
