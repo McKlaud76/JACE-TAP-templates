@@ -9,6 +9,7 @@
 ;
 ;   Change log:
 ;
+;   v.0.2 - 9/10/2020 - housekeeping & AR_DATA block length update
 ;   v.0.1 - 8/10/2020 - first draft (simple and dirty)
 ;
 ; ================================================================
@@ -83,7 +84,7 @@ CLS             equ     $0A24         ; Clear Screen
 ;                       |----------|     <<< Keep it exactly 10 chars long!
 
                 defw    AR_DATA_size    ; 2 bytes: File Length
-                defw    $22E0           ; 2 bytes: Start Address at 24th screen line
+                defw    $22E0           ; 2 bytes: Start Address at 24th screen line (8928)
                 defw    v_c_link        ; 2 bytes: current word link (NOT USED)
                 defw    v_current       ; 2 bytes: CURRENT (NOT USED)
                 defw    v_context       ; 2 bytes: CONTEXT (NOT USED)
@@ -92,7 +93,7 @@ CLS             equ     $0A24         ; Clear Screen
 ;               defb    checksum        ; 1 byte: Header Block CheckSum - added by ZASM
 ;               defw    CODE_DATA_size  ; 2 bytes: TAP 2nd chunck size - added by ZASM
 
-#code AR_DATA, 0, 32, NONE
+#code AR_DATA, 0, 31, NONE
 ; AR_DATA executes FORTH command
 ;    LOAD mainfile RUN
 
